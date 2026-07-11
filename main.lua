@@ -28,6 +28,18 @@ function init_enemy(x, y)
     }
 end
 
+function player_hitbox(player) 
+    local hitbox_size = 4
+    return {
+        x = player.x + player_size / 2 - hitbox_size / 2,
+        y = player.y + player_size / 2 - hitbox_size / 2,
+        w = hitbox_size,
+        h = hitbox_size
+    }
+end
+
+
+
 function _config()
     ---@type Usagi.Config
     return {
@@ -166,9 +178,8 @@ function _update(dt)
                 {
                     x = bullet.x, y = bullet.y, w = enemy_bullet_size, h = enemy_bullet_size
                 },
-                {
-                    x = State.player.x, y = State.player.y, w = player_size, h = player_size
-                })
+                player_hitbox(State.player)
+            )
             ) then
             bullet.dead = true
         end
@@ -218,6 +229,19 @@ function _draw(dt)
             player_size,
             gfx.COLOR_BLACK
         );
+    end
+
+    local p_hitbox = player_hitbox(State.player)
+    if (State.night_mode) then
+        gfx.rect_fill(
+            p_hitbox.x, p_hitbox.y, p_hitbox.w, p_hitbox.h,
+            gfx.COLOR_BLACK
+        )
+    else 
+        gfx.rect_fill(
+            p_hitbox.x, p_hitbox.y, p_hitbox.w, p_hitbox.h,
+            gfx.COLOR_WHITE
+        )
     end
 
     for _, bullet in ipairs(State.player.bullets) do
