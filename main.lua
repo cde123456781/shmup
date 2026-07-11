@@ -74,7 +74,7 @@ function _init()
     }
 end
 
-function _update(dt)
+function update_player_move(dt)
     local input_delta = { x = 0, y = 0 };
     if (input.held(input.UP)) then
         input_delta.y -= 1
@@ -89,16 +89,15 @@ function _update(dt)
         input_delta.x += 1
     end
 
-    if (input.key_pressed(input.KEY_SPACE)) then
-        State.night_mode = not State.night_mode
-    end
-
     local normalised_input = util.vec_normalize(input_delta);
     State.player.x += normalised_input.x * player_speed * dt
     State.player.y += normalised_input.y * player_speed * dt
     State.player.x = util.clamp(State.player.x, 0, usagi.GAME_W - player_size)
     State.player.y = util.clamp(State.player.y, 0, usagi.GAME_H - player_size)
 
+end
+
+function update_player_fire(dt)
     fire_timer -= dt
     if (fire_timer <= 0 and input.held(input.BTN1)) then
         local bul_y = State.player.y - player_bullet_h
@@ -111,6 +110,10 @@ function _update(dt)
         fire_timer = fire_delay
     end
 
+end
+
+
+function update_player_bullets(dt)
     for i = #State.player.bullets, 1, -1 do
         local bullet = State.player.bullets[i]
         bullet.y -= bullet_speed * dt
@@ -130,7 +133,9 @@ function _update(dt)
             table.remove(State.player.bullets, i)
         end
     end
+end
 
+function update_enemies(dt)
     for i = #State.enemies, 1, -1 do
         local enemy = State.enemies[i]
         enemy.y += enemy.speed * dt
@@ -168,6 +173,9 @@ function _update(dt)
         end
     end
 
+end
+
+function update_enemy_bullets(dt)
     for i = #State.enemy_bullets, 1, -1 do
         local bullet = State.enemy_bullets[i]
         local speed = 120
@@ -189,9 +197,10 @@ function _update(dt)
         end
     end
 
+end
 
 
-
+function try_spawn_enemies()
     if #State.enemies == 0 then
         table.insert(
             State.enemies,
@@ -207,6 +216,22 @@ function _update(dt)
             State.enemies,
             init_enemy(usagi.GAME_W / 2, -60)
         )
+    end
+end
+
+
+
+function _update(dt)
+    update_player_move(dt)
+    update_player_fire(dt)
+    update_player_bullets(dt)
+    update_enemies(dt)
+    update_enemy_bullets(dt)
+    try_spawn_enemies()
+
+
+    if (input.key_pressed(input.KEY_SPACE)) then
+        State.night_mode = not State.night_mode
     end
 end
 
