@@ -125,6 +125,7 @@ function update_player_fire(dt)
     fire_timer -= dt
     if (fire_timer <= 0 and input.held(input.BTN1)) then
         local bul_y = State.player.y - player_bullet_h
+        sfx.play("laserShoot")
         table.insert(State.player.bullets,
             { x = State.player.x - player_bullet_w, y = bul_y })
         table.insert(State.player.bullets,
@@ -198,6 +199,7 @@ function update_enemies(dt)
 
         if enemy.hp <= 0 or enemy.y > usagi.GAME_H then
             table.remove(State.enemies, i)
+            sfx.play("explosion")
         end
 
         if (util.rect_overlap(
@@ -205,6 +207,7 @@ function update_enemies(dt)
             player_hitbox(State.player)
         )) then
             State.game_over = true
+            sfx.play("death")
             effect.flash(0.4, gfx.COLOR_WHITE)
             effect.screen_shake(0.8, 2)
 
@@ -229,6 +232,7 @@ function update_enemy_bullets(dt)
             ) then
             bullet.dead = true
             State.game_over = true
+            sfx.play("death")
             effect.flash(0.4, gfx.COLOR_WHITE)
             effect.screen_shake(0.8, 2)
             
