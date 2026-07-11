@@ -11,6 +11,31 @@ local hit_flash_time = 0.2 -- seconds
 local enemy_bullet_size = 12
 
 
+local GAME_W = 320
+local GAME_H = 320
+local WAVES = {
+    {
+        {72, -20},
+        {112, -60},
+        {200, -100},
+        {240, -140}
+    },
+    {
+        {72, -20},
+        {100, -60},
+        {GAME_W - 72, -20},
+        {GAME_W - 100, -60}
+    },
+    {
+        {72, -20},
+        {102, -40},
+        {132, -60},
+        {162, -80}
+    },
+
+
+}
+
 function init_enemy(x, y)
     return {
         x = x,
@@ -45,8 +70,8 @@ function _config()
     return {
         name = "Shmup",
         game_id = "com.cde123456781.shmup",
-        game_width = 320,
-        game_height = 320,
+        game_width = GAME_W,
+        game_height = GAME_H,
     }
 end
 
@@ -60,14 +85,11 @@ function _init()
             y = usagi.GAME_H - 60,
             bullets = {},
         },
-        enemies = {
-            init_enemy(72, -20),
-            init_enemy(usagi.GAME_W - 72, -20),
-            init_enemy(usagi.GAME_W / 2, -60)
-        },
+        enemies = {},
         night_mode = false,
         enemy_bullets = {},
-
+        game_over = false,
+        current_wave = 0
 
 
 
@@ -171,6 +193,16 @@ function update_enemies(dt)
         if enemy.hp <= 0 or enemy.y > usagi.GAME_H then
             table.remove(State.enemies, i)
         end
+
+        if (util.rect_overlap(
+            {x = enemy.x, y = enemy.y, w = enemy.w, h = enemy.h},
+            player_hitbox(State.player)
+        )) then
+            State.game_over = true
+            effect.flash(0.4, gfx.COLOR_WHITE)
+            effect.screen_shake(0.8, 2)
+
+        end
     end
 
 end
@@ -190,6 +222,10 @@ function update_enemy_bullets(dt)
             )
             ) then
             bullet.dead = true
+            State.game_over = true
+            effect.flash(0.4, gfx.COLOR_WHITE)
+            effect.screen_shake(0.8, 2)
+            
         end
 
         if bullet.dead or bullet.y > usagi.GAME_H then
@@ -201,73 +237,80 @@ end
 
 
 function try_spawn_enemies()
-    if #State.enemies == 0 then
-        table.insert(
-            State.enemies,
-            init_enemy(72, -20)
-        )
+    if #State.enemies == 0 and State.current_wave < #WAVES then
+        State.current_wave += 1
+        State.enemies = {}
 
-        table.insert(
-            State.enemies,
-            init_enemy(usagi.GAME_W - 72, -20)
-        )
-
-        table.insert(
-            State.enemies,
-            init_enemy(usagi.GAME_W / 2, -60)
-        )
+        for _, enemy in ipairs(WAVES[State.current_wave]) do
+            table.insert(State.enemies, init_enemy(enemy[1], enemy[2]))
+        end
     end
 end
 
 
 
 function _update(dt)
-    update_player_move(dt)
-    update_player_fire(dt)
-    update_player_bullets(dt)
-    update_enemies(dt)
-    update_enemy_bullets(dt)
-    try_spawn_enemies()
+    if State.game_over then
+        if input.pressed(input.BTN1) then
+            _init()
+        end
+    else 
+        update_player_move(dt)
+        update_player_fire(dt)
+        update_player_bullets(dt)
+        update_enemies(dt)
+        update_enemy_bullets(dt)
+        try_spawn_enemies()
 
 
-    if (input.key_pressed(input.KEY_SPACE)) then
-        State.night_mode = not State.night_mode
+        if (input.key_pressed(input.KEY_SPACE)) then
+            State.night_mode = not State.night_mode
+        end
     end
 end
 
 function _draw(dt)
-    if (State.night_mode) then
-        gfx.clear(gfx.COLOR_BLACK)
-        gfx.rect_fill(
-            State.player.x,
-            State.player.y,
-            player_size,
-            player_size,
-            gfx.COLOR_WHITE
-        );
-    else
-        gfx.clear(gfx.COLOR_WHITE);
-        gfx.rect_fill(
-            State.player.x,
-            State.player.y,
-            player_size,
-            player_size,
-            gfx.COLOR_BLACK
-        );
-    end
-
     local p_hitbox = player_hitbox(State.player)
     if (State.night_mode) then
-        gfx.rect_fill(
-            p_hitbox.x, p_hitbox.y, p_hitbox.w, p_hitbox.h,
-            gfx.COLOR_BLACK
-        )
-    else 
-        gfx.rect_fill(
-            p_hitbox.x, p_hitbox.y, p_hitbox.w, p_hitbox.h,
-            gfx.COLOR_WHITE
-        )
+        gfx.clear(gfx.COLOR_BLACK)
+        if (not State.game_over) then
+            gfx.rect_fill(
+                State.player.x,
+                State.player.y,
+                player_size,
+                player_size,
+                gfx.COLOR_WHITE
+            );
+            gfx.rect_fill(
+                p_hitbox.x, p_hitbox.y, p_hitbox.w, p_hitbox.h,
+                gfx.COLOR_BLACK
+            )
+        end
+    else
+        gfx.clear(gfx.COLOR_WHITE);
+        if (not State.game_over) then 
+            gfx.rect_fill(
+                State.player.x,
+                State.player.y,
+                player_size,
+                player_size,
+                gfx.COLOR_BLACK
+            );
+
+            gfx.rect_fill(
+                p_hitbox.x, p_hitbox.y, p_hitbox.w, p_hitbox.h,
+                gfx.COLOR_WHITE
+            )
+        end
     end
+
+    if State.game_over then
+        gfx.text("GAME OVER", 10, 10, gfx.COLOR_BLACK)
+        gfx.text("Press " .. input.mapping_for(input.BTN1).. " to restart!",
+        10, 32, gfx.COLOR_BLACK)
+    end
+
+
 
     for _, bullet in ipairs(State.player.bullets) do
         gfx.rect_fill(bullet.x, bullet.y,
