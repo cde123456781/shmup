@@ -89,7 +89,8 @@ function _init()
         night_mode = false,
         enemy_bullets = {},
         game_over = false,
-        current_wave = 0
+        current_wave = 0,
+        timer = 60
 
 
 
@@ -255,6 +256,11 @@ function _update(dt)
             _init()
         end
     else 
+        State.timer -= dt
+        State.timer = math.max(State.timer, 0)
+        if State.timer == 0 then
+            State.game_over = true
+        end
         update_player_move(dt)
         update_player_fire(dt)
         update_player_bullets(dt)
@@ -304,10 +310,21 @@ function _draw(dt)
         end
     end
 
+    if (State.night_mode) then
+        gfx.text(string.format("%.2f", State.timer), GAME_W / 2 - 16, 10, gfx.COLOR_WHITE)
+    else 
+        gfx.text(string.format("%.2f", State.timer), GAME_W / 2 - 16, 10, gfx.COLOR_BLACK)
+    end
+
     if State.game_over then
-        gfx.text("GAME OVER", 10, 10, gfx.COLOR_BLACK)
+        if State.timer == 0 then
+            gfx.text("TIME OUT", 10, 10, gfx.COLOR_BLACK)
+        else
+            gfx.text("GAME OVER", 10, 10, gfx.COLOR_BLACK)
+        end     
         gfx.text("Press " .. input.mapping_for(input.BTN1).. " to restart!",
-        10, 32, gfx.COLOR_BLACK)
+            10, 32, gfx.COLOR_BLACK)
+
     end
 
 
